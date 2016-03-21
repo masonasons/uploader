@@ -1,0 +1,7 @@
+*.pyc
+*~
+build/
+dist/
+run.bat
+compile.bat
+commit.txt
