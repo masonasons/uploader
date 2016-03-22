@@ -1,3 +1,4 @@
+import config_utils
 import os.path as path
 import sys
 import urllib
@@ -5,7 +6,9 @@ import urllib
 import requests
 import wx
 
-
+MAINFILE = "uploader.cfg"
+MAINSPEC = "app.defaults"
+appconfig = config_utils.load_config(MAINFILE,MAINSPEC)
 class AudioUploader(wx.Frame):
 	"""Application to allow uploading of audio files to SndUp and other similar services"""
 	def __init__(self, title):
@@ -19,6 +22,11 @@ class AudioUploader(wx.Frame):
 		self.link_label = wx.StaticText(self.panel, -1, "Audio UR&L")
 		self.link = wx.TextCtrl(self.panel, -1, "",style=wx.TE_READONLY)
 		self.main_box.Add(self.link, 0, wx.ALL, 10)
+		self.key_label = wx.StaticText(self.panel, -1,"API &Key")
+		self.key = wx.TextCtrl(self.panel, -1, "")
+		self.main_box.Add(self.key, 0, wx.ALL, 10)
+		self.key.SetValue(appconfig["general"]["APIKey"])
+
 		self.upload = wx.Button(self.panel, -1, "&Upload")
 		self.upload.Bind(wx.EVT_BUTTON, self.StartUpload)
 		self.main_box.Add(self.upload, 0, wx.ALL, 10)
@@ -32,7 +40,7 @@ class AudioUploader(wx.Frame):
 		"""Starts an upload; only runs after a standard operating system find file dialog has been shown and a file selected"""
 		self.select_file.Disable()
 		self.upload.Disable()
-		r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')})
+		r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')}, data={'api_key':self.key.GetValue()})
 		self.link.ChangeValue(handle_URL(r.json()))
 		self.link.SetFocus()
 
@@ -47,6 +55,9 @@ class AudioUploader(wx.Frame):
 
 	def OnClose(self, event):
 		"""App close event handler"""
+		appconfig["general"]["APIKey"]=self.key.GetValue()
+		appconfig.write()
+
 		self.Destroy()
 
 def handle_URL(url):
