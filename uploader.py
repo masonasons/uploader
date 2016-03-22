@@ -6,6 +6,9 @@ import urllib
 import requests
 import wx
 
+services = []
+services.append("SNDUp")
+services.append("TWUp")
 MAINFILE = "uploader.cfg"
 MAINSPEC = "app.defaults"
 appconfig = config_utils.load_config(MAINFILE,MAINSPEC)
@@ -22,10 +25,14 @@ class AudioUploader(wx.Frame):
 		self.link_label = wx.StaticText(self.panel, -1, "Audio UR&L")
 		self.link = wx.TextCtrl(self.panel, -1, "",style=wx.TE_READONLY)
 		self.main_box.Add(self.link, 0, wx.ALL, 10)
-		self.key_label = wx.StaticText(self.panel, -1,"API &Key")
+		self.key_label = wx.StaticText(self.panel, -1,"SNDUp API &Key")
 		self.key = wx.TextCtrl(self.panel, -1, "")
 		self.main_box.Add(self.key, 0, wx.ALL, 10)
 		self.key.SetValue(appconfig["general"]["APIKey"])
+
+		self.services_label=wx.StaticText(self.panel, -1, "Upload to")
+		self.services = wx.ComboBox(self.panel, -1, choices=services, value=services[0], style=wx.CB_READONLY)
+		self.main_box.Add(self.services, 0, wx.ALL, 10)
 
 		self.upload = wx.Button(self.panel, -1, "&Upload")
 		self.upload.Bind(wx.EVT_BUTTON, self.StartUpload)
@@ -42,10 +49,15 @@ class AudioUploader(wx.Frame):
 
 	def StartUpload(self,event):
 		"""Starts an upload; only runs after a standard operating system find file dialog has been shown and a file selected"""
+		self.services.Hide()
 		self.select_file.Hide()
 		self.upload.Hide()
 		self.key.Hide()
-		r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')}, data={'api_key':self.key.GetValue()})
+
+		if self.services.GetValue()=="SNDUp":
+			r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')}, data={'api_key':self.key.GetValue()})
+		elif self.services.GetValue()== "TWUp":
+			r=requests.post("http://api.twup.me/post.json", files={"file":open(self.filename,'rb')})
 		self.link.ChangeValue(handle_URL(r.json()))
 		self.link.SetFocus()
 		self.new.Show()
@@ -60,6 +72,7 @@ class AudioUploader(wx.Frame):
 		self.upload.Show()
 
 	def Reset(self, event):
+		self.services.Show()
 		self.upload.Hide()
 		self.new.Hide()
 		self.select_file.Show()
