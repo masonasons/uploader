@@ -31,6 +31,10 @@ class AudioUploader(wx.Frame):
 		self.upload.Bind(wx.EVT_BUTTON, self.StartUpload)
 		self.main_box.Add(self.upload, 0, wx.ALL, 10)
 		self.upload.Hide()
+		self.new = wx.Button(self.panel, -1, "&Attach another file")
+		self.new.Bind(wx.EVT_BUTTON, self.Reset)
+		self.main_box.Add(self.new, 0, wx.ALL, 10)
+		self.new.Hide()
 		self.close = wx.Button(self.panel, wx.ID_CLOSE, "&Close")
 		self.close.Bind(wx.EVT_BUTTON, self.OnClose)
 		self.main_box.Add(self.close, 0, wx.ALL, 10)
@@ -38,11 +42,13 @@ class AudioUploader(wx.Frame):
 
 	def StartUpload(self,event):
 		"""Starts an upload; only runs after a standard operating system find file dialog has been shown and a file selected"""
-		self.select_file.Disable()
-		self.upload.Disable()
+		self.select_file.Hide()
+		self.upload.Hide()
+		self.key.Hide()
 		r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')}, data={'api_key':self.key.GetValue()})
 		self.link.ChangeValue(handle_URL(r.json()))
 		self.link.SetFocus()
+		self.new.Show()
 
 	def SelectFile(self,event):
 		"""Opens a standard OS find file dialog to find an audio file to upload"""
@@ -52,6 +58,14 @@ class AudioUploader(wx.Frame):
 		self.filename= openFileDialog.GetPath()
 		self.name=path.basename(self.filename)
 		self.upload.Show()
+
+	def Reset(self, event):
+		self.upload.Hide()
+		self.new.Hide()
+		self.select_file.Show()
+		self.key.Show()
+		self.select_file.SetFocus()
+		self.link.ChangeValue("")
 
 	def OnClose(self, event):
 		"""App close event handler"""
