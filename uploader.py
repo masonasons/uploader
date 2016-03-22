@@ -1,4 +1,6 @@
 import os.path as path
+import sys
+import urllib
 
 import requests
 import wx
@@ -30,9 +32,8 @@ class AudioUploader(wx.Frame):
 		"""Starts an upload; only runs after a standard operating system find file dialog has been shown and a file selected"""
 		self.select_file.Disable()
 		self.upload.Disable()
-		#this is where things go weirdly
 		r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')})
-		self.link.ChangeValue(r.text)
+		self.link.ChangeValue(handle_URL(r.json()))
 		self.link.SetFocus()
 
 	def SelectFile(self,event):
@@ -48,6 +49,16 @@ class AudioUploader(wx.Frame):
 		"""App close event handler"""
 		self.Destroy()
 
+def handle_URL(url):
+	"""Properly converts an escaped URL to a proper one, taking into account the difference in python 2 and python 3"""
+	# We are passed a python dict by default, as SndUp's response is json and we convert that to a dict with .json()
+	# So extract the URL from the dict:
+	url = url['url']
+	if sys.version_info[0]==2: # running python 2
+		final_url = urllib.unquote(url)
+	elif sys.version_info[1]==3:
+		final_url = urllib.parse.unquote(url)
+	return final_url
 
 app = wx.App(redirect=False)
 window=AudioUploader("Audio uploader")
