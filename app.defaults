@@ -1,2 +1,4 @@
 [general]
 APIKey = string(default="")
+TWKey = string(default="")
+TWSecret = string(default="")
