@@ -97,7 +97,7 @@ class AudioUploader(wx.Frame):
 		else:
 			auth.set_access_token(appconfig["general"]["TWKey"],appconfig["general"]["TWSecret"])
 		api = tweepy.API(auth)
-		api.update_status(self.twitter_text.GetValue()+" "+self.link.GetValue())
+		api.update_status(self.twitter_text.GetValue()+" "+self.link.GetValue()+" #audio")
 
 	def Reset(self, event):
 		self.twitter_text.SetValue("")
@@ -115,7 +115,6 @@ class AudioUploader(wx.Frame):
 		"""App close event handler"""
 		appconfig["general"]["APIKey"]=self.key.GetValue()
 		appconfig.write()
-
 		self.Destroy()
 
 def handle_URL(url):
@@ -129,13 +128,16 @@ def handle_URL(url):
 		final_url = urllib.parse.unquote(url)
 	return final_url
 
-app = wx.App(redirect=False)
-window=AudioUploader("Audio uploader")
 def ask(parent=window, message='', default_value=''):
+	"""Simple dialog to get a response from the user"""
 	dlg = wx.TextEntryDialog(parent, message, defaultValue=default_value)
 	dlg.ShowModal()
 	result = dlg.GetValue()
 	dlg.Destroy()
 	return result
+
+
+app = wx.App(redirect=False)
+window=AudioUploader("Audio uploader")
 window.Show()
 app.MainLoop()
