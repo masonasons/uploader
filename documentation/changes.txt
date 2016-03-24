@@ -1,0 +1,5 @@
+New in 1.1
+* Adds tweet feature.
+* Adds Twup support as well as Sndup.
+* Adds an Attach Another File button after upload finishes.
+* Now hides controls instead of disabling them.

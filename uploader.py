@@ -129,13 +129,13 @@ def handle_URL(url):
 		final_url = urllib.parse.unquote(url)
 	return final_url
 
-def ask(parent=None, message='', default_value=''):
+app = wx.App(redirect=False)
+window=AudioUploader("Audio uploader")
+def ask(parent=window, message='', default_value=''):
 	dlg = wx.TextEntryDialog(parent, message, defaultValue=default_value)
 	dlg.ShowModal()
 	result = dlg.GetValue()
 	dlg.Destroy()
 	return result
-app = wx.App(redirect=False)
-window=AudioUploader("Audio uploader")
 window.Show()
 app.MainLoop()
