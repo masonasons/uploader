@@ -8,18 +8,22 @@ import urllib
 import requests
 import wx
 
-tw1="MneWylqkykEp95neIxCvN1i2J"
-tw2="jPdug6Dl9IWxJvtsaQRqT120jYKf8bXl3drKFshw8JzGQCm6XX"
-services = []
-services.append("SNDUp")
-services.append("TWUp")
-MAINFILE = "uploader.cfg"
-MAINSPEC = "app.defaults"
-appconfig = config_utils.load_config(MAINFILE,MAINSPEC)
+# Globals
+
+tw1="MneWylqkykEp95neIxCvN1i2J" # twitter app key
+tw2="jPdug6Dl9IWxJvtsaQRqT120jYKf8bXl3drKFshw8JzGQCm6XX" # twitter app secret
+services = ['SNDUp', 'TWUp'] # supported audio upload services
+
+
 class AudioUploader(wx.Frame):
 	"""Application to allow uploading of audio files to SndUp and other similar services"""
 	def __init__(self, title):
-		wx.Frame.__init__(self, None, title=title, size=(350,200))
+		wx.Frame.__init__(self, None, title=title, size=(350,200)) # initialize the wx frame
+		# load config and validate a specification file
+		self.MAINFILE = "uploader.cfg"
+		self.MAINSPEC = "app.defaults"
+		self.appconfig = config_utils.load_config(self.MAINFILE, self.MAINSPEC)
+		# window events and controls
 		self.Bind(wx.EVT_CLOSE, self.OnClose)
 		self.panel = wx.Panel(self)
 		self.main_box = wx.BoxSizer(wx.VERTICAL)
@@ -32,17 +36,16 @@ class AudioUploader(wx.Frame):
 		self.key_label = wx.StaticText(self.panel, -1,"SNDUp API &Key")
 		self.key = wx.TextCtrl(self.panel, -1, "")
 		self.main_box.Add(self.key, 0, wx.ALL, 10)
-		self.key.SetValue(appconfig["general"]["APIKey"])
-
+		self.key.SetValue(self.appconfig["general"]["APIKey"])
 		self.services_label=wx.StaticText(self.panel, -1, "Upload to")
 		self.services = wx.ComboBox(self.panel, -1, choices=services, value=services[0], style=wx.CB_READONLY)
+		self.services.Bind(wx.EVT_COMBOBOX, self.on_service_change)
 		self.main_box.Add(self.services, 0, wx.ALL, 10)
-
 		self.upload = wx.Button(self.panel, -1, "&Upload")
 		self.upload.Bind(wx.EVT_BUTTON, self.StartUpload)
 		self.main_box.Add(self.upload, 0, wx.ALL, 10)
 		self.upload.Hide()
-		self.twitter_label = wx.StaticText(self.panel, -1,"Tweet &Text")
+		self.twitter_label = wx.StaticText(self.panel, -1,"Tweet Te&xt")
 		self.twitter_text = wx.TextCtrl(self.panel, -1, "")
 		self.main_box.Add(self.twitter_text, 0, wx.ALL, 10)
 		self.twitter_text.Hide()
@@ -69,7 +72,10 @@ class AudioUploader(wx.Frame):
 		self.tweet.Show()
 
 		if self.services.GetValue()=="SNDUp":
-			r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')}, data={'api_key':self.key.GetValue()})
+			if self.key.GetValue() != "":
+				r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')}, data={'api_key':self.key.GetValue()})
+			else:
+				r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')})
 		elif self.services.GetValue()== "TWUp":
 			r=requests.post("http://api.twup.me/post.json", files={"file":open(self.filename,'rb')})
 		self.link.ChangeValue(handle_URL(r.json()))
@@ -87,17 +93,17 @@ class AudioUploader(wx.Frame):
 
 	def Tweet(self, event):
 		auth = tweepy.OAuthHandler(tw1, tw2)
-		if appconfig["general"]["TWKey"]=="" or appconfig["general"]["TWSecret"]=="":
+		if self.appconfig["general"]["TWKey"]=="" or self.appconfig["general"]["TWSecret"]=="":
 			webbrowser.open(auth.get_authorization_url())
-			verifier = ask(message='Enter pin:')
+			verifier = ask(parent=self, message='Enter pin:')
 			auth.get_access_token(verifier)
-			appconfig["general"]["TWKey"]=auth.access_token
-			appconfig["general"]["TWSecret"]=auth.access_token_secret
-			appconfig.write()
+			self.appconfig["general"]["TWKey"]=auth.access_token
+			self.appconfig["general"]["TWSecret"]=auth.access_token_secret
+			self.appconfig.write()
 		else:
-			auth.set_access_token(appconfig["general"]["TWKey"],appconfig["general"]["TWSecret"])
+			auth.set_access_token(self.appconfig["general"]["TWKey"], self.appconfig["general"]["TWSecret"])
 		api = tweepy.API(auth)
-		api.update_status(self.twitter_text.GetValue()+" "+self.link.GetValue())
+		api.update_status(self.twitter_text.GetValue()+" "+self.link.GetValue()+" #audio")
 
 	def Reset(self, event):
 		self.twitter_text.SetValue("")
@@ -111,11 +117,20 @@ class AudioUploader(wx.Frame):
 		self.select_file.SetFocus()
 		self.link.ChangeValue("")
 
+	def on_service_change(self, event):
+		"""Event handler for when the service combo box changes.
+			Currently it just hides unnecessary fields for different services. For example, TWUp doesn't have an API key system, so we shouldn't keep the text field that SNDUp needs when it isn't selected.
+		"""
+		dir(event)
+		if event.GetString() == 'SNDUp':
+			self.key.Show()
+		else:
+			self.key.Hide()
+
 	def OnClose(self, event):
 		"""App close event handler"""
-		appconfig["general"]["APIKey"]=self.key.GetValue()
-		appconfig.write()
-
+		self.appconfig["general"]["APIKey"]=self.key.GetValue()
+		self.appconfig.write()
 		self.Destroy()
 
 def handle_URL(url):
@@ -129,13 +144,16 @@ def handle_URL(url):
 		final_url = urllib.parse.unquote(url)
 	return final_url
 
-app = wx.App(redirect=False)
-window=AudioUploader("Audio uploader")
-def ask(parent=window, message='', default_value=''):
+def ask(parent=None, message='', default_value=''):
+	"""Simple dialog to get a response from the user"""
 	dlg = wx.TextEntryDialog(parent, message, defaultValue=default_value)
 	dlg.ShowModal()
 	result = dlg.GetValue()
 	dlg.Destroy()
 	return result
+
+
+app = wx.App(redirect=False)
+window=AudioUploader("Audio uploader")
 window.Show()
 app.MainLoop()
