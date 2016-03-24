@@ -45,7 +45,7 @@ class AudioUploader(wx.Frame):
 		self.upload.Bind(wx.EVT_BUTTON, self.StartUpload)
 		self.main_box.Add(self.upload, 0, wx.ALL, 10)
 		self.upload.Hide()
-		self.twitter_label = wx.StaticText(self.panel, -1,"Tweet &Text")
+		self.twitter_label = wx.StaticText(self.panel, -1,"Tweet Te&xt")
 		self.twitter_text = wx.TextCtrl(self.panel, -1, "")
 		self.main_box.Add(self.twitter_text, 0, wx.ALL, 10)
 		self.twitter_text.Hide()
