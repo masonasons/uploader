@@ -2,3 +2,4 @@ http://hg.q-continuum.net/sound_lib/archive/tip.tar.gz
 requests
 configobj
 validate
+tweepy
