@@ -12,7 +12,7 @@ import wx
 
 tw1="MneWylqkykEp95neIxCvN1i2J" # twitter app key
 tw2="jPdug6Dl9IWxJvtsaQRqT120jYKf8bXl3drKFshw8JzGQCm6XX" # twitter app secret
-services = ['SNDUp', 'TWUp', 'SoundCache'] # supported audio upload services
+services = ['SNDUp', 'SoundCache'] # supported audio upload services
 
 
 class AudioUploader(wx.Frame):
@@ -76,8 +76,6 @@ class AudioUploader(wx.Frame):
 				r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')}, data={'api_key':self.key.GetValue()})
 			else:
 				r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')})
-		elif self.services.GetValue()== "TWUp":
-			r=requests.post("http://api.twup.me/post.json", files={"file":open(self.filename,'rb')})
 		elif self.services.GetValue() == "SoundCache":
 			r = requests.post("http://soundcache.tk/upload.php", files={"file":open(self.filename,'rb')})
 		self.link.ChangeValue(handle_URL(r.json()))
