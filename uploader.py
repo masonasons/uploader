@@ -1,3 +1,4 @@
+from threading import Thread
 import tweepy
 import webbrowser
 import config_utils
@@ -30,8 +31,9 @@ class AudioUploader(wx.Frame):
 		self.select_file = wx.Button(self.panel, -1, "&Select File")
 		self.select_file.Bind(wx.EVT_BUTTON, self.SelectFile)
 		self.main_box.Add(self.select_file, 0, wx.ALL, 10)
-		self.link_label = wx.StaticText(self.panel, -1, "Audio UR&L")
+		self.link_label = wx.StaticText(self.panel, -1, "Audio U&RL")
 		self.link = wx.TextCtrl(self.panel, -1, "",style=wx.TE_READONLY)
+		self.link.SetValue("Waiting for audio...")
 		self.main_box.Add(self.link, 0, wx.ALL, 10)
 		self.key_label = wx.StaticText(self.panel, -1,"SNDUp API &Key")
 		self.key = wx.TextCtrl(self.panel, -1, "")
@@ -42,7 +44,7 @@ class AudioUploader(wx.Frame):
 		self.services.Bind(wx.EVT_COMBOBOX, self.on_service_change)
 		self.main_box.Add(self.services, 0, wx.ALL, 10)
 		self.upload = wx.Button(self.panel, -1, "&Upload")
-		self.upload.Bind(wx.EVT_BUTTON, self.StartUpload)
+		self.upload.Bind(wx.EVT_BUTTON, self.OnUpload)
 		self.main_box.Add(self.upload, 0, wx.ALL, 10)
 		self.upload.Hide()
 		self.twitter_label = wx.StaticText(self.panel, -1,"Tweet Te&xt")
@@ -62,14 +64,17 @@ class AudioUploader(wx.Frame):
 		self.main_box.Add(self.close, 0, wx.ALL, 10)
 		self.panel.Layout()
 
-	def StartUpload(self,event):
+	def OnUpload(self,event):
+		self.UploadThread = Thread(target=self.StartUpload)
+		self.UploadThread.start()
+
+	def StartUpload(self):
 		"""Starts an upload; only runs after a standard operating system find file dialog has been shown and a file selected"""
 		self.services.Hide()
 		self.select_file.Hide()
 		self.upload.Hide()
 		self.key.Hide()
-		self.twitter_text.Show()
-		self.tweet.Show()
+		self.link.SetFocus()
 
 		if self.services.GetValue()=="SNDUp":
 			if self.key.GetValue() != "":
@@ -79,8 +84,9 @@ class AudioUploader(wx.Frame):
 		elif self.services.GetValue() == "SoundCache":
 			r = requests.post("http://soundcache.tk/upload.php", files={"file":open(self.filename,'rb')})
 		self.link.ChangeValue(handle_URL(r.json()))
-		self.link.SetFocus()
 		self.new.Show()
+		self.twitter_text.Show()
+		self.tweet.Show()
 
 	def SelectFile(self,event):
 		"""Opens a standard OS find file dialog to find an audio file to upload"""
