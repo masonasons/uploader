@@ -1,3 +1,4 @@
+import audio_input
 from threading import Thread
 import tweepy
 import webbrowser
@@ -5,6 +6,7 @@ import config_utils
 import os.path as path
 import sys
 import urllib
+import application
 
 import requests
 import wx
@@ -14,11 +16,13 @@ import wx
 tw1="MneWylqkykEp95neIxCvN1i2J" # twitter app key
 tw2="jPdug6Dl9IWxJvtsaQRqT120jYKf8bXl3drKFshw8JzGQCm6XX" # twitter app secret
 services = ['SNDUp', 'SoundCache'] # supported audio upload services
+audio=audio_input.AudioInput()
 
 
 class AudioUploader(wx.Frame):
 	"""Application to allow uploading of audio files to SndUp and other similar services"""
 	def __init__(self, title):
+		self.recording=False
 		wx.Frame.__init__(self, None, title=title, size=(350,200)) # initialize the wx frame
 		# load config and validate a specification file
 		self.MAINFILE = "uploader.cfg"
@@ -31,6 +35,9 @@ class AudioUploader(wx.Frame):
 		self.select_file = wx.Button(self.panel, -1, "&Select File")
 		self.select_file.Bind(wx.EVT_BUTTON, self.SelectFile)
 		self.main_box.Add(self.select_file, 0, wx.ALL, 10)
+		self.record = wx.Button(self.panel, -1, "&Record")
+		self.record.Bind(wx.EVT_BUTTON, self.Record)
+		self.main_box.Add(self.record, 0, wx.ALL, 10)
 		self.link_label = wx.StaticText(self.panel, -1, "Audio U&RL")
 		self.link = wx.TextCtrl(self.panel, -1, "",style=wx.TE_READONLY)
 		self.link.SetValue("Waiting for audio...")
@@ -73,28 +80,49 @@ class AudioUploader(wx.Frame):
 		self.services.Hide()
 		self.select_file.Hide()
 		self.upload.Hide()
+		self.record.Hide()
 		self.key.Hide()
+		self.link.Show()
 		self.link.SetFocus()
 
 		if self.services.GetValue()=="SNDUp":
 			if self.key.GetValue() != "":
-				r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')}, data={'api_key':self.key.GetValue()})
+				r=requests.post("http://www.sndup.net/post.php", files={"file":open(audio.filename,'rb')}, data={'api_key':self.key.GetValue()})
 			else:
-				r=requests.post("http://www.sndup.net/post.php", files={"file":open(self.filename,'rb')})
+				r=requests.post("http://www.sndup.net/post.php", files={"file":open(audio.filename,'rb')})
 		elif self.services.GetValue() == "SoundCache":
-			r = requests.post("http://soundcache.tk/upload.php", files={"file":open(self.filename,'rb')})
+			r = requests.post("http://soundcache.tk/upload.php", files={"file":open(audio.filename,'rb')})
 		self.link.ChangeValue(handle_URL(r.json()))
 		self.new.Show()
 		self.twitter_text.Show()
 		self.tweet.Show()
+
+	def Record(self,event):
+		if self.recording==False:
+			audio.start_recording()
+			self.record.SetLabel("&Stop")
+			self.select_file.Hide()
+			self.upload.Hide()
+			self.recording=True
+
+		elif self.recording==True:
+			audio.stop_recording()
+			self.record.SetLabel("&Record")
+			self.select_file.Show()
+			self.upload.Show()
+			self.recording=False
+			audio.is_recording=True
 
 	def SelectFile(self,event):
 		"""Opens a standard OS find file dialog to find an audio file to upload"""
 		openFileDialog = wx.FileDialog(self, "Select the audio file to be uploaded", "", "", "Audio Files (*.mp3, *.ogg, *.wav)|*.mp3; *.ogg; *.wav", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
 		if openFileDialog.ShowModal() == wx.ID_CANCEL:
 			return False
-		self.filename= openFileDialog.GetPath()
-		self.name=path.basename(self.filename)
+		audio.filename= openFileDialog.GetPath()
+		audio.name=path.basename(audio.filename)
+		if audio.is_recording==True:
+			audio.cleanup()
+
 		self.upload.Show()
 
 	def Tweet(self, event):
@@ -115,6 +143,7 @@ class AudioUploader(wx.Frame):
 		self.twitter_text.SetValue("")
 		self.twitter_text.Hide()
 		self.tweet.Hide()
+		self.record.Show()
 		self.services.Show()
 		self.upload.Hide()
 		self.new.Hide()
@@ -122,6 +151,8 @@ class AudioUploader(wx.Frame):
 		self.key.Show()
 		self.select_file.SetFocus()
 		self.link.ChangeValue("")
+		if audio.is_recording==True:
+			audio.cleanup()
 
 	def on_service_change(self, event):
 		"""Event handler for when the service combo box changes.
@@ -137,6 +168,8 @@ class AudioUploader(wx.Frame):
 		"""App close event handler"""
 		self.appconfig["general"]["APIKey"]=self.key.GetValue()
 		self.appconfig.write()
+		if audio.is_recording==True:
+			audio.cleanup()
 		self.Destroy()
 
 def handle_URL(url):
@@ -160,6 +193,6 @@ def ask(parent=None, message='', default_value=''):
 
 
 app = wx.App(redirect=False)
-window=AudioUploader("Audio uploader")
+window=AudioUploader(application.name)
 window.Show()
 app.MainLoop()
