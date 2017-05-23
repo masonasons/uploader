@@ -193,6 +193,6 @@ def ask(parent=None, message='', default_value=''):
 
 
 app = wx.App(redirect=False)
-window=AudioUploader(application.name)
+window=AudioUploader(application.name+" "+application.version)
 window.Show()
 app.MainLoop()

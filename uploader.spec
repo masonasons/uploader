@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['uploader.py'],
-             pathex=['D:\\data\\projects\\python\\git\\uploader'],
+             pathex=['C:\\Users\\mason\\Dropbox\\projects\\python\\git\\uploader'],
              binaries=[],
              datas=[],
              hiddenimports=[],
